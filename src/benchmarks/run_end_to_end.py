@@ -9,17 +9,16 @@ from src.python_gpu.gpu_nsga2 import GPU_NSGA2
 from src.cpu_cpp.cpu_nsga2_full_wrapper import run_cpu_nsga2
 
 if __name__ == '__main__':
-    print("\n--- Running End-to-End Experiments (Exp 8 - Custom Kernel) ---")
+    print("\n--- End-to-End NSGA-II Benchmark ---")
     
-    # Custom kernel config as requested
+
     Ns = [100, 200, 500, 1000, 2000, 5000, 10000]
     Ms = [3, 5]
     n_runs = 5
     
-    # We will save to this explicit file path
     results_file = "experiments/results/exp8_end_to_end_v2_custom_kernel.csv"
     
-    # Store results for summary
+
     summary_data = {n: {3: "-", 5: "-"} for n in Ns}
     
     os.makedirs(os.path.dirname(results_file), exist_ok=True)
@@ -28,12 +27,11 @@ if __name__ == '__main__':
         
         for M in Ms:
             for N in Ns:
-                # 100 for N<=2000, 50 for N>2000
                 n_gen = 100 if N <= 2000 else 50
                 
                 print(f"Testing N={N}, M={M}, n_gen={n_gen}...")
                 
-                # CPU runs
+
                 cpu_best = float('inf')
                 for _ in range(n_runs):
                     problem_id = 'DTLZ2_M5' if M == 5 else 'DTLZ2'
@@ -41,7 +39,7 @@ if __name__ == '__main__':
                     if ms_cpu < cpu_best:
                         cpu_best = ms_cpu
                         
-                # GPU runs
+
                 gpu_best = float('inf')
                 gpu_nsga2 = GPU_NSGA2(pop_size=N, n_gen=n_gen, problem='DTLZ2', 
                                       n_obj=M, n_var=N, seed=42)
@@ -55,7 +53,7 @@ if __name__ == '__main__':
                 f.write(f"DTLZ2,{N},{M},{n_gen},{gpu_best:.2f},{cpu_best:.2f},{speedup:.4f},{speedup > 1}\n")
                 f.flush()
                 
-                # Store for summary table
+
                 summary_data[N][M] = f"{speedup:.2f}x"
                 print(f"  CPU: {cpu_best:.2f} ms | GPU: {gpu_best:.2f} ms | Speedup: {speedup:.2f}x")
 

@@ -247,46 +247,31 @@ class GPU_NSGA2:
         return f_d
 
     def _crowding_distance(self, obj_d, ranks_d):
-        import cupy as cp
-        from src.python_gpu.gpu_kernels.crowding_distance import gpu_crowding_distance
+        """Compute crowding distance per front on GPU."""
         N, M = obj_d.shape
-        return gpu_crowding_distance(
-            obj_d.astype(cp.float32), 
-            ranks_d.astype(cp.int32), 
-            N, M
-        )
-        # OLD: Python-loop crowding distance
-        # """Compute crowding distance on GPU using CuPy operations."""
-        # N = obj_d.shape[0]
-        # cd = cp.zeros(N, dtype=cp.float32)
-        # max_rank = int(ranks_d.max())
-        # for front in range(max_rank + 1):
-        #     mask = ranks_d == front
-        #     n_front = int(mask.sum())
-        #     if n_front <= 2:
-        #         cd[mask] = cp.inf
-        #         continue
-        # 
-        #     front_idx = cp.where(mask)[0]
-        #     front_obj = obj_d[front_idx]  # (n_front, M)
-        # 
-        #     for m in range(self.n_obj):
-        #         sorted_order = cp.argsort(front_obj[:, m])
-        #         sorted_vals = front_obj[sorted_order, m]
-        #         f_range = float(sorted_vals[-1] - sorted_vals[0])
-        #         if f_range < 1e-12:
-        #             continue
-        #         # Boundary solutions get infinity
-        #         local_cd = cp.zeros(n_front, dtype=cp.float32)
-        #         local_cd[0] = cp.inf
-        #         local_cd[-1] = cp.inf
-        #         # Interior solutions
-        #         if n_front > 2:
-        #             local_cd[1:-1] = (sorted_vals[2:] - sorted_vals[:-2]) / f_range
-        #         # Scatter back
-        #         cd[front_idx[sorted_order]] += local_cd
-        # 
-        # return cd
+        cd = cp.zeros(N, dtype=cp.float32)
+        max_rank = int(ranks_d.max())
+        for front in range(max_rank + 1):
+            mask = ranks_d == front
+            n_front = int(mask.sum())
+            if n_front <= 2:
+                cd[mask] = cp.inf
+                continue
+            front_idx = cp.where(mask)[0]
+            front_obj = obj_d[front_idx]
+            for m in range(self.n_obj):
+                sorted_order = cp.argsort(front_obj[:, m])
+                sorted_vals = front_obj[sorted_order, m]
+                f_range = float(sorted_vals[-1] - sorted_vals[0])
+                if f_range < 1e-12:
+                    continue
+                local_cd = cp.zeros(n_front, dtype=cp.float32)
+                local_cd[0] = cp.inf
+                local_cd[-1] = cp.inf
+                if n_front > 2:
+                    local_cd[1:-1] = (sorted_vals[2:] - sorted_vals[:-2]) / f_range
+                cd[front_idx[sorted_order]] += local_cd
+        return cd
 
     def _tournament_selection(self, ranks_d, cd_d, N, rng):
         """Binary tournament selection on GPU."""

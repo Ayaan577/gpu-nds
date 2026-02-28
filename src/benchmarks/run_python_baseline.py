@@ -30,7 +30,7 @@ for N in [100, 500, 1000, 2000, 5000, 10000]:
 
 results = []
 for N, M in configs:
-    # HARD STOP: skip configs that would take > 120 seconds
+    # Skip configurations exceeding 120-second runtime
     if N > 5000 and M > 5:
         print(f"N={N:6d} M={M}: SKIPPED (would exceed 120s)")
         results.append({
@@ -58,5 +58,4 @@ with open('experiments/results/python_nds_times.csv',
     writer.writeheader()
     writer.writerows(results)
 
-print("Done. Saved to python_nds_times.csv")
-print("Expected runtime: under 10 minutes total.")
+print("Saved to experiments/results/python_nds_times.csv")
