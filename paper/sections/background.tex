@@ -1,0 +1,51 @@
+\section{Background}
+\label{sec:background}
+
+\subsection{Fast Non-Dominated Sort (NSGA-II)}
+
+The non-dominated sorting procedure introduced by Deb et al.~\cite{deb2002fast} is the foundation of NSGA-II. Given a population $P = \{x_1, \ldots, x_N\}$ where each solution $x_i$ has $M$ objective values $f_1(x_i), \ldots, f_M(x_i)$ (all to be minimised), the algorithm assigns each solution to a \emph{front} $\mathcal{F}_k$ based on Pareto dominance. A solution $x_i$ \emph{dominates} $x_j$ (written $x_i \prec x_j$) if $f_m(x_i) \leq f_m(x_j)$ for all $m$ and $f_m(x_i) < f_m(x_j)$ for at least one $m$.
+
+The algorithm proceeds in two phases. First, for every pair $(x_i, x_j)$, it records which solutions are dominated and counts dominators. Second, it iteratively ``peels'' fronts: solutions with zero domination count form $\mathcal{F}_0$; removing them reduces domination counts for remaining solutions, revealing $\mathcal{F}_1$, and so on. The total cost is $\mathcal{O}(MN^2)$ for the pairwise comparisons plus $\mathcal{O}(N^2)$ for the peeling, giving overall $\mathcal{O}(MN^2)$.
+
+For large populations, this quadratic cost is the primary bottleneck. With $N = 10{,}000$ and $M = 10$, the algorithm performs up to $10^9$ scalar comparisons.
+
+\subsection{Divide-and-Conquer Non-Dominated Sort (DCNS)}
+
+Mishra et al.~\cite{mishra2016dcns,mishra2019dcns_journal} proposed DCNS, which reduces the comparison count through a divide-and-conquer strategy:
+
+\begin{algorithm}
+\caption{DCNS: Divide-and-Conquer NDS}
+\label{alg:dcns}
+\begin{algorithmic}[1]
+\REQUIRE Population $P$ of size $N$, sorted by first objective
+\ENSURE Front rank $\text{rank}[i]$ for each $x_i \in P$
+\IF{$|P| \leq 1$}
+    \RETURN
+\ENDIF
+\STATE Split $P$ into $P_L$ (left half) and $P_R$ (right half)
+\STATE $\textsc{DCNS}(P_L)$
+\STATE $\textsc{DCNS}(P_R)$
+\STATE \textsc{Merge}($P_L, P_R$): for each $x_j \in P_R$, check dominance against $P_L$
+\STATE Update domination counts and assign ranks
+\end{algorithmic}
+\end{algorithm}
+
+The key insight is that after sorting by one objective, solutions in $P_L$ can only dominate (not be dominated by) solutions in $P_R$ along that objective. This reduces the number of cross-partition comparisons. The best-case complexity is $\mathcal{O}(N \log N + MN)$, achieved when the Pareto front structure allows effective pruning.
+
+\subsection{P-ENS: Parallel Elite Non-dominated Sorting}
+
+Mishra and Coello~\cite{mishra2018pens} analysed the parallelisation of non-dominated sorting under the PRAM-CREW (Concurrent Read, Exclusive Write) model. Their P-ENS approach shows that with $N$ processors, the depth (parallel time) can be reduced to $\mathcal{O}(M \log N)$, yielding a work-efficient parallel algorithm.
+
+However, the PRAM model assumes unit-cost memory access with no hierarchy, unlimited processors, and synchronous execution---none of which hold on real GPUs. The gap between PRAM theory and GPU practice includes: (1) the SIMT execution model where threads in a warp must execute the same instruction, (2) a deep memory hierarchy with registers, shared memory, L1/L2 caches, and global memory with vastly different latencies, and (3) the need for explicit memory management and synchronisation via atomic operations. \textbf{To our knowledge, no prior work has implemented a working GPU version of DCNS or P-ENS.}
+
+\subsection{GPU Architecture Primer}
+
+Modern NVIDIA GPUs execute thousands of threads organised into \emph{warps} of 32 threads~\cite{nvidia2023cuda}. Threads within a warp execute in lockstep (SIMT). Thread blocks share a fast \emph{shared memory} (typically 48-96 KB per SM) that is orders of magnitude faster than global memory. Efficient GPU algorithms maximise shared memory reuse and minimise global memory traffic through \emph{tiling}: loading a tile of data into shared memory, computing on it, then loading the next tile. This tiling strategy is central to our GPU-NDS design.
+
+\subsection{GPU-Accelerated MOEAs: Related Work}
+
+Several prior works explore GPU acceleration for MOEAs.
+Aguilar-Rivera~\cite{aguilar2020gpu} introduced a GPU NSGA-II using \emph{stochastic} non-dominated sorting ($O(N \log N)$), trading exact front guarantees for speed (up to $300\times$).
+Liang et al.~\cite{liang2024tensorrvea} fully tensorised RVEA for GPU execution ($1{,}000\times$ speedup), targeting reference-vector-guided algorithms rather than NSGA-II.
+Huang et al.~\cite{huang2024evox} proposed EvoX, a distributed GPU framework supporting 50+ evolutionary algorithms via tensorised dataflow on JAX/PyTorch, delegating NDS to framework-level tensor operations.
+In contrast, GPU-NDS provides an \emph{exact}, provably correct NDS kernel (Proposition~2) with tiled shared-memory dominance checks, honest compiled-language benchmarks, and a dedicated CUDA crowding distance kernel---none of which are offered by prior work.

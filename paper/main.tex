@@ -1,0 +1,63 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{cite}
+\usepackage{multirow}
+\usepackage{subcaption}
+
+
+\begin{document}
+
+\title{GPU-NDS: GPU-Accelerated Non-Dominated Sorting
+with DCNS-Inspired Tiled Shared-Memory Dominance Checks}
+
+\titlerunning{GPU-NDS: GPU-Accelerated Non-Dominated Sorting}
+
+\author{
+  Mohammed Azeez Khan\inst{1} \and
+  Mohammed Arif\inst{1}       \and
+  Supreet Nayak\inst{1}       \and
+  Sumit Mishra\inst{1}
+}
+
+\authorrunning{Khan et al.}
+
+\institute{
+  Department of Computer Science and Engineering,\\
+  National Institute of Technology Warangal,\\
+  Warangal, Telangana 506004, India\\
+  \email{\{ma22csb0f36, ma22csb0f37, sk22csb0c43,
+         sumit\}@nitw.ac.in}
+}
+
+\maketitle
+
+\begin{abstract}
+Non-dominated sorting is the primary computational bottleneck in multi-objective evolutionary algorithms (MOEAs) such as NSGA-II. The classical fast non-dominated sort runs in $\mathcal{O}(MN^2)$ time for $N$ solutions with $M$ objectives, while divide-and-conquer approaches (DCNS) achieve $\mathcal{O}(N \log N + MN)$ in the best case. Despite theoretical parallel analyses (P-ENS), no practical GPU implementation has bridged the gap between DCNS's comparison-reduction insights and GPU memory architecture---adapting its pruning principles while respecting the SIMT execution model and memory hierarchy. We present GPU-NDS, a DCNS-inspired GPU-accelerated non-dominated sorting algorithm that integrates (1) sum-of-objectives pre-sorting for comparison pruning, (2) tiled shared-memory dominance checks for reduced global memory traffic, (3) parallel front assignment via atomic operations, (4) an analytical performance model validated empirically, and (5) a dedicated CUDA crowding distance kernel reducing crowding time by $3\times$. Comprehensive benchmarks on the DTLZ benchmark suite demonstrate up to $27.8\times$ speedup over \emph{optimized C++ baselines compiled with -O3}---a significantly more honest comparison than prior work comparing against Python implementations. We also demonstrate a fully GPU-resident NSGA-II where all operators execute on the GPU, achieving $2.09\times$ end-to-end speedup over a fully compiled C++ NSGA-II at $N\!=\!2{,}000$. Our implementation is publicly available and can serve as a drop-in replacement for the sorting operator in GPU-resident MOEAs.
+\end{abstract}
+
+\begin{keywords}
+Non-dominated sorting \and GPU computing \and CUDA \and
+Multi-objective evolutionary algorithms \and NSGA-II \and
+Shared-memory tiling \and Parallel algorithms \and
+DCNS \and Pareto front
+\end{keywords}
+
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/algorithm}
+\input{sections/analysis}
+\input{sections/experiments}
+\input{sections/conclusion}
+
+\bibliographystyle{splncs04}
+\bibliography{references}
+
+\end{document}

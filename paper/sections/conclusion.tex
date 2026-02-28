@@ -1,0 +1,10 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented GPU-NDS, a GPU-accelerated non-dominated sorting algorithm that adapts DCNS-inspired comparison pruning and pre-sorting to the GPU memory hierarchy via tiled shared-memory dominance checks, and demonstrated its integration into a fully GPU-resident NSGA-II where all operators---including a dedicated CUDA crowding distance kernel---execute on the GPU.
+
+\textbf{Key Results.} (1) GPU-NDS achieves up to $27.8\times$ speedup over \emph{optimized C++ baselines compiled with -O3}, compared to the inflated $8{,}000\times$ speedups reported when comparing against Python. (2) The GPU advantage grows with both $N$ and $M$, peaking at $N = 10{,}000$, $M = 8$. (3) A fully GPU-resident NSGA-II achieves $2.09\times$ end-to-end speedup over a \emph{fully compiled C++ baseline} at $N = 2{,}000$, with all operators (NDS, crowding distance, selection, crossover, mutation) as custom CUDA kernels. (4) The dedicated CUDA crowding distance kernel reduces crowding time from 0.327\,ms to 0.109\,ms ($3\times$), ensuring it accounts for less than 2\% of total pipeline time.
+
+\textbf{Limitations.} GPU kernel launch overhead makes CPU algorithms competitive for $N < 1{,}000$. The end-to-end evaluation is conducted on an RTX~3050 Ti Laptop GPU; the crossover population size is hardware-dependent and expected to decrease on data-centre GPUs.
+
+\textbf{Future Work.} We plan to (1) extend to NSGA-III reference-point selection, (2) explore streaming NDS for online Pareto front maintenance, and (3) benchmark on data-centre GPUs (A100/H100) where kernel launch overhead is lower.

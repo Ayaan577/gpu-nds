@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Compiled binaries
+*.exe
+*.obj
+*.o
+*.dll
+*.lib
+*.exp
+*.so
+*.dylib
+*.a
+
+# LaTeX auxiliary files
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.synctex*
+paper/*.fls
+paper/*.fdb_latexmk
+paper/sections/*.aux
+
+# Generated PDF (can be rebuilt)
+paper/main.pdf
+
+# Profile / debug logs
+profile_*.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini

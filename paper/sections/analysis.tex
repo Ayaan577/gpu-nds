@@ -1,0 +1,58 @@
+\section{Performance Analysis}
+\label{sec:analysis}
+
+\subsection{Comparison Count Model}
+
+\begin{proposition}[Average-case comparison count model]
+\label{prop:comparison_count}
+Under the assumption that solutions are drawn uniformly and independently from $[0,1]^M$, GPU-NDS with sum-of-objectives pre-sort performs an expected number of dominance comparisons bounded by
+\[
+C(N, M) \leq N \cdot \frac{N}{F} \cdot p_{\text{dom}}(M)
+\]
+where $F$ is the number of Pareto fronts and $p_{\text{dom}}(M) = 2/M!$ is the probability that two uniformly random solutions are comparable.
+This is an average-case model, not a worst-case bound. Worst-case comparison count is $O(N^2)$ (all solutions in a single front). Figure~\ref{fig:model_validation} validates this model empirically.
+\end{proposition}
+
+\textit{Proof sketch.}
+Without pre-sorting, Phase 2 examines all $N(N-1)/2$ unique pairs, each requiring $M$ scalar comparisons. With the sum-of-objectives sort, pairs $(i, j)$ where $\text{sum}(i) > \text{sum}(j)$ are pruned. After sorting, solution $i$ can only dominate solution $j$ if $i$ precedes $j$ in the sorted order, and the sum-bound prunes cases where the sum difference rules out dominance.
+
+For random populations, the expected number of fronts is $F \approx N^{1 - 1/(M-1)}$~\cite{deb2002fast}. Solutions within the same front are mutually non-dominating, so comparisons between same-front members are unnecessary but may still be performed. The effective number of cross-front comparisons per solution is $\mathcal{O}(N/F)$, and only a fraction $p_{\text{dom}}(M)$ of random pairs are comparable, giving the bound above.
+
+For the naive approach without pruning, the comparison count is $\mathcal{O}(MN^2)$, which is strictly worse for any $F > 1$ and $p_{\text{dom}} < 1$. $\square$
+
+\subsection{Correctness}
+
+\begin{proposition}[Correctness of GPU-NDS]
+\label{prop:correctness}
+GPU-NDS produces the same front assignment as sequential non-dominated sort.
+\end{proposition}
+
+\textit{Proof sketch.} Phase 2 computes $\text{dom\_count}[i]$ = the number of solutions that dominate $x_i$, which is identical to the NSGA-II domination count (the sum-bound pruning only skips pairs where dominance is impossible, so it does not affect the count). Phase 3 is the standard iterative peeling: $\mathcal{F}_0$ contains solutions with count 0; removing them and decrementing yields $\mathcal{F}_1$, etc. The atomic operations ensure correctness under concurrent execution. The pre-sort permutation is reversed before returning results. $\square$
+
+\subsection{Memory Transaction Analysis}
+
+\begin{proposition}[Memory traffic reduction]
+\label{prop:memory_traffic}
+The tiled dominance kernel reads
+\[
+B(N, M, T) = \left\lceil \frac{N}{T} \right\rceil^2 \cdot 2T \cdot M \cdot 4 \text{ bytes}
+\]
+from global memory, where $T$ is the tile size and factors of 4 account for 32-bit floats.
+\end{proposition}
+
+Without tiling, each solution's $M$ floats are read $N$ times (once per comparison partner), giving $N^2 M \cdot 4$ bytes of global memory traffic. Tiling reduces this by a factor of $T$: each tile loads $T$ solutions' objectives once into shared memory, then reuses them for $T$ comparisons.
+
+For $N = 10{,}000$, $M = 10$, $T = 32$: the naive approach reads 4 GB of data; tiling reduces this to 125 MB---a $32\times$ reduction in memory traffic. This reduction is critical because the dominance kernel is memory-bandwidth-bound for $M \geq 5$.
+
+The achieved memory bandwidth utilisation is:
+\[
+\eta = \frac{B(N, M, T)}{t_{\text{kernel}} \cdot \text{BW}_{\text{peak}}}
+\]
+where $t_{\text{kernel}}$ is the kernel execution time and $\text{BW}_{\text{peak}}$ is the GPU's peak memory bandwidth. For our RTX 3050 (192 GB/s peak), we observe $\eta \approx 0.4$--$0.6$ for $M \geq 5$ and $N \geq 5{,}000$, indicating that the kernel approaches the memory-bandwidth-bound regime.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/fig7_model_validation.pdf}
+    \caption{Theoretical vs. empirical dominance comparison counts across different $(N, M)$ configurations on DTLZ2. The average-case model (Proposition~\ref{prop:comparison_count}) tracks empirical measurements closely for random populations.}
+    \label{fig:model_validation}
+\end{figure}
