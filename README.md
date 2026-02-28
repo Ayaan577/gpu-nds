@@ -1,6 +1,6 @@
 # GPU-NDS: GPU-Accelerated Non-Dominated Sorting
 
-> **Reproducibility package** for the paper:  
+> **Reproducibility package** for:  
 > *GPU-NDS: GPU-Accelerated Non-Dominated Sorting with DCNS-Inspired Tiled Shared-Memory Dominance Checks*  
 > Khan, Arif, Nayak, Mishra — NIT Warangal
 
@@ -30,12 +30,10 @@ GPU-NDS achieves up to **27.8× speedup** over optimized C++ baselines (compiled
 │   └── tests/               # Correctness tests
 ├── experiments/
 │   ├── results/             # Raw CSV benchmark data
-│   └── generate_plots.py    # Regenerate all paper figures
-├── paper/                   # LaTeX source (LNCS format)
-├── requirements.txt         # Python dependencies
+│   └── generate_plots.py    # Regenerate all figures
+├── requirements.txt
 ├── setup.py
-├── build_cuda.bat           # Build CUDA crowding kernel (Windows)
-└── compile_paper.bat        # Compile LaTeX paper (Windows)
+└── build_cuda.bat           # Build CUDA crowding kernel (Windows)
 ```
 
 ## Prerequisites
@@ -47,9 +45,8 @@ GPU-NDS achieves up to **27.8× speedup** over optimized C++ baselines (compiled
 | CuPy | `cupy-cuda12x` |
 | NVIDIA GPU | RTX 3050 Ti (Compute 8.6) |
 | C++ Compiler | GCC 9.2+ or MSVC 2022 |
-| LaTeX | MiKTeX or TeX Live |
 
-## Quick Start
+## Reproducing Results
 
 ### 1. Install Python dependencies
 
@@ -80,38 +77,29 @@ build_cuda.bat
 make all
 ```
 
-### 4. Run NDS benchmarks (reproduces Figures 2–4)
+### 4. Run NDS benchmarks
 
 ```bash
 python -m src.benchmarks.run_benchmarks
 python -m src.benchmarks.run_cpp_benchmark
 ```
 
-### 5. Run end-to-end NSGA-II comparison (reproduces Figure 6)
+### 5. Run end-to-end NSGA-II comparison
 
 ```bash
 python -m src.benchmarks.run_end_to_end
 ```
 
-### 6. Run Python baseline timing (reproduces Figure 4)
+### 6. Run Python baseline timing
 
 ```bash
 python -m src.benchmarks.run_python_baseline
 ```
 
-### 7. Regenerate all paper figures
+### 7. Regenerate figures from CSV data
 
 ```bash
 python experiments/generate_plots.py
-```
-
-### 8. Compile the paper
-
-Download [`llncs.cls`](https://ctan.org/pkg/llncs) and [`splncs04.bst`](https://ctan.org/pkg/splncs04) into `paper/`, then:
-
-```bash
-cd paper
-pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
 ```
 
 ## Key Results
@@ -124,9 +112,9 @@ pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
 | GPU-NSGA-II vs C++-NSGA-II (end-to-end) | **2.09×** | N=2,000, M=3 |
 | CUDA crowding vs CuPy crowding | **3×** | N=2,000, M=3 |
 
-## Correctness
+## Correctness Validation
 
-GPU-NDS produces **provably identical** front assignments to sequential non-dominated sorting (Proposition 2 in the paper). Correctness is validated across 480 configurations (all combinations of N, M, and benchmark problems).
+GPU-NDS produces **provably identical** front assignments to sequential non-dominated sorting. Validated across 480 configurations:
 
 ```bash
 python -m src.benchmarks.correctness_check
