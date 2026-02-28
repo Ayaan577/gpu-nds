@@ -153,43 +153,41 @@ def fig3_python_vs_cpp_vs_gpu():
 
 
 def fig4_end_to_end():
-    """Figure 4: End-to-end GPU vs CPU NSGA-II timing."""
-    # Hardcoded from the benchmark run
-    data = [
-        (100, 100, 3, 1238.1, 90.7),
-        (200, 100, 3, 1383.9, 194.3),
-        (500, 100, 3, 2660.9, 801.8),
-        (1000, 50, 3, 1229.3, 1387.2),
-    ]
-    
-    fig, ax = plt.subplots(1, 1, figsize=(7, 5))
-    
-    pops = [d[0] for d in data]
-    gpu_ms = [d[3] for d in data]
-    cpu_ms = [d[4] for d in data]
-    
-    x = np.arange(len(pops))
-    width = 0.35
-    
-    bars1 = ax.bar(x - width/2, gpu_ms, width, label='GPU-NSGA-II', color='#e74c3c', alpha=0.8)
-    bars2 = ax.bar(x + width/2, cpu_ms, width, label='CPU-NSGA-II (C++)', color='#3498db', alpha=0.8)
-    
-    ax.set_xlabel('Population Size')
-    ax.set_ylabel('Total Time (ms)')
-    ax.set_title('End-to-End NSGA-II: GPU vs CPU (DTLZ2, M=3)')
-    ax.set_xticks(x)
-    ax.set_xticklabels([f'N={p}' for p in pops])
-    ax.legend()
-    ax.grid(True, alpha=0.3, axis='y')
-    
-    # Add speedup annotations
-    for i, (g, c) in enumerate(zip(gpu_ms, cpu_ms)):
-        speedup = c / g
-        color = '#2ecc71' if speedup > 1 else '#e74c3c'
-        txt = f'{speedup:.2f}x' if speedup >= 1 else f'{speedup:.2f}x'
-        ax.text(i, max(g, c) * 1.05, txt, ha='center', fontsize=9,
-               fontweight='bold', color=color)
-    
+    """Figure 4: End-to-end GPU vs CPU NSGA-II timing (M=3 and M=5)."""
+    csv_path = os.path.join(RESULTS_DIR, 'exp8_end_to_end_fair_cpp.csv')
+    df = pd.read_csv(csv_path)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=False)
+
+    for ax_idx, M_val in enumerate([3, 5]):
+        ax = axes[ax_idx]
+        sub = df[df['M'] == M_val].sort_values('pop_size')
+        pops = sub['pop_size'].values
+        gpu_ms = sub['gpu_ms'].values
+        cpu_ms = sub['cpp_full_ms'].values
+
+        x = np.arange(len(pops))
+        width = 0.35
+
+        ax.bar(x - width/2, gpu_ms, width, label='GPU-NSGA-II', color='#e74c3c', alpha=0.8)
+        ax.bar(x + width/2, cpu_ms, width, label='C++-NSGA-II', color='#3498db', alpha=0.8)
+
+        ax.set_xlabel('Population Size')
+        ax.set_ylabel('Total Time (ms)')
+        ax.set_title(f'DTLZ2, M={M_val}')
+        ax.set_xticks(x)
+        ax.set_xticklabels([f'N={p}' for p in pops])
+        ax.legend(fontsize=9)
+        ax.grid(True, alpha=0.3, axis='y')
+
+        for i, (g, c) in enumerate(zip(gpu_ms, cpu_ms)):
+            speedup = c / g
+            color = '#2ecc71' if speedup > 1 else '#e74c3c'
+            txt = f'{speedup:.2f}x'
+            ax.text(i, max(g, c) * 1.05, txt, ha='center', fontsize=9,
+                   fontweight='bold', color=color)
+
+    plt.suptitle('End-to-End NSGA-II: GPU vs C++ Baseline', fontsize=13, fontweight='bold')
     plt.tight_layout()
     path = os.path.join(PLOTS_DIR, 'fig4_end_to_end.png')
     plt.savefig(path, dpi=300, bbox_inches='tight')

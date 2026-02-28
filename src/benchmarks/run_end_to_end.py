@@ -13,13 +13,13 @@ if __name__ == '__main__':
     
 
     Ns = [100, 200, 500, 1000, 2000, 5000, 10000]
-    Ms = [3, 5]
+    Ms = [3, 5, 10]
     n_runs = 5
     
     results_file = "experiments/results/exp8_end_to_end_v2_custom_kernel.csv"
     
 
-    summary_data = {n: {3: "-", 5: "-"} for n in Ns}
+    summary_data = {n: {3: "-", 5: "-", 10: "-"} for n in Ns}
     
     os.makedirs(os.path.dirname(results_file), exist_ok=True)
     with open(results_file, 'w') as f:
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
                 cpu_best = float('inf')
                 for _ in range(n_runs):
-                    problem_id = 'DTLZ2_M5' if M == 5 else 'DTLZ2'
+                    problem_id = f'DTLZ2_M{M}' if M != 3 else 'DTLZ2'
                     _, _, ms_cpu = run_cpu_nsga2(problem_id, N, M, N, n_gen, seed=42)
                     if ms_cpu < cpu_best:
                         cpu_best = ms_cpu
@@ -57,11 +57,11 @@ if __name__ == '__main__':
                 summary_data[N][M] = f"{speedup:.2f}x"
                 print(f"  CPU: {cpu_best:.2f} ms | GPU: {gpu_best:.2f} ms | Speedup: {speedup:.2f}x")
 
-    # Print summary table
     print("\nSummary Table:")
-    print("  N      | M=3 speedup | M=5 speedup")
-    print("  -------+-------------+------------")
+    print("  N      | M=3 speedup | M=5 speedup | M=10 speedup")
+    print("  -------+-------------+-------------+-------------")
     for N in Ns:
         s3 = summary_data[N][3]
         s5 = summary_data[N][5]
-        print(f"  {N:<6d} | {s3:>11s} | {s5:>10s}")
+        s10 = summary_data[N][10]
+        print(f"  {N:<6d} | {s3:>11s} | {s5:>11s} | {s10:>12s}")
