@@ -1,109 +1,151 @@
-# GPU-Native Divide-and-Conquer Non-Dominated Sorting (GPU-NDS)
+# GPU-NDS: GPU-Accelerated Non-Dominated Sorting
 
-A complete research project implementing GPU-accelerated non-dominated sorting
-for Multi-Objective Evolutionary Algorithms (MOEAs), targeting conference
-publication (CEC/GECCO/EMO).
+> **Reproducibility package** for the paper:  
+> *GPU-NDS: GPU-Accelerated Non-Dominated Sorting with DCNS-Inspired Tiled Shared-Memory Dominance Checks*  
+> Khan, Arif, Nayak, Mishra — NIT Warangal
 
-GPU-NDS implements a four-phase CUDA pipeline: sum-of-objectives pre-sort,
-tiled shared-memory dominance checks, parallel front assignment via atomic
-operations, and prefix-scan cleanup. It achieves significant speedups over
-CPU baselines (NSGA-II, DCNS, BOS) for large populations and many-objective
-problems, while producing provably correct Pareto front assignments.
+GPU-NDS achieves up to **27.8× speedup** over optimized C++ baselines (compiled with `-O3`) for non-dominated sorting, and **2.09× end-to-end speedup** for a fully GPU-resident NSGA-II at N=2,000.
 
-## Installation
+---
+
+## Repository Structure
+
+```
+├── src/
+│   ├── python_gpu/          # GPU-NSGA-II (CuPy + CUDA kernels)
+│   │   ├── gpu_nds_cupy.py      # GPU-NDS sorting via CuPy
+│   │   └── gpu_nsga2.py         # Full GPU-resident NSGA-II
+│   ├── gpu/                 # Raw CUDA kernels (.cu/.cuh)
+│   ├── gpu_kernels/         # Standalone CUDA crowding distance kernel
+│   │   ├── crowding_distance.cu
+│   │   ├── crowding_distance.cuh
+│   │   ├── crowding_launcher.cu
+│   │   └── Makefile
+│   ├── cpu/                 # Python CPU baselines (NSGA-II, DCNS, BOS)
+│   ├── cpu_cpp/             # C++ baselines compiled with -O3
+│   │   ├── nds_algorithms.cpp   # C++ NDS: NSGA-II sort, DCNS, BOS
+│   │   └── cpu_nsga2_full.cpp   # Full C++ NSGA-II (end-to-end baseline)
+│   ├── benchmarks/          # Benchmark scripts
+│   ├── analysis/            # Performance model validation
+│   └── tests/               # Correctness tests
+├── experiments/
+│   ├── results/             # Raw CSV benchmark data
+│   └── generate_plots.py    # Regenerate all paper figures
+├── paper/                   # LaTeX source (LNCS format)
+├── requirements.txt         # Python dependencies
+├── setup.py
+├── build_cuda.bat           # Build CUDA crowding kernel (Windows)
+└── compile_paper.bat        # Compile LaTeX paper (Windows)
+```
+
+## Prerequisites
+
+| Dependency | Version Tested |
+|-----------|---------------|
+| Python | 3.10+ |
+| CUDA Toolkit | 13.1 |
+| CuPy | `cupy-cuda12x` |
+| NVIDIA GPU | RTX 3050 Ti (Compute 8.6) |
+| C++ Compiler | GCC 9.2+ or MSVC 2022 |
+| LaTeX | MiKTeX or TeX Live |
+
+## Quick Start
+
+### 1. Install Python dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-For GPU acceleration (recommended — requires an NVIDIA GPU with CUDA support):
+### 2. Build C++ baselines
+
 ```bash
-pip install cupy-cuda11x
+# Linux/macOS
+cd src/cpu_cpp
+g++ -O3 -ffast-math -std=c++17 -shared -fPIC -o cpu_nds.so nds_algorithms.cpp
+g++ -O3 -ffast-math -std=c++17 -shared -fPIC -o cpu_nsga2_full.so cpu_nsga2_full.cpp
+
+# Windows
+cd src/cpu_cpp
+build.bat
 ```
 
-## Quick Start
+### 3. Build CUDA crowding distance kernel
 
-### 1. Verify Correctness
 ```bash
-cd gpu_nds
-python -m src.benchmarks.correctness_check
+# Windows
+build_cuda.bat
+
+# Linux (from src/gpu_kernels/)
+make all
 ```
 
-### 2. Run Smoke Test (fast, small problem sizes)
+### 4. Run NDS benchmarks (reproduces Figures 2–4)
+
 ```bash
-python -m src.benchmarks.run_benchmarks --smoke
+python -m src.benchmarks.run_benchmarks
+python -m src.benchmarks.run_cpp_benchmark
 ```
 
-### 3. Run All Experiments (full benchmark suite)
+### 5. Run end-to-end NSGA-II comparison (reproduces Figure 6)
+
 ```bash
-python -m src.benchmarks.run_benchmarks --all
+python -m src.benchmarks.run_end_to_end
 ```
 
-### 4. Generate Plots
+### 6. Run Python baseline timing (reproduces Figure 4)
+
+```bash
+python -m src.benchmarks.run_python_baseline
+```
+
+### 7. Regenerate all paper figures
+
 ```bash
 python experiments/generate_plots.py
 ```
 
-### 5. Run Performance Model Validation
-```bash
-python -m src.analysis.performance_model
-```
+### 8. Compile the paper
 
-## Reproducing All Paper Results
-
-Single command to run everything:
-```bash
-python -m src.benchmarks.run_benchmarks --all && python experiments/generate_plots.py && python -m src.analysis.performance_model
-```
-
-## CUDA C Compilation (optional, requires nvcc)
+Download [`llncs.cls`](https://ctan.org/pkg/llncs) and [`splncs04.bst`](https://ctan.org/pkg/splncs04) into `paper/`, then:
 
 ```bash
-cd src/gpu
-nvcc -O3 -arch=sm_86 gpu_nds.cu -o gpu_nds
+cd paper
+pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
 ```
 
-## Project Structure
+## Key Results
 
-```
-gpu_nds/
-├── src/
-│   ├── cpu/
-│   │   ├── nsga2_sort.py        # CPU baseline: Deb 2002 O(MN²)
-│   │   ├── dcns.py              # CPU baseline: DCNS (Mishra 2019)
-│   │   └── bos.py               # CPU baseline: Best Order Sort
-│   ├── gpu/
-│   │   ├── gpu_nds.cu           # CUDA C reference implementation
-│   │   ├── gpu_nds_kernels.cuh  # CUDA kernel headers
-│   │   ├── naive_gpu.cu         # Naive GPU baseline
-│   │   └── utils.cuh            # CUDA utilities
-│   ├── python_gpu/
-│   │   └── gpu_nds_cupy.py      # CuPy GPU implementation (primary)
-│   ├── benchmarks/
-│   │   ├── run_benchmarks.py    # Master benchmark runner
-│   │   ├── generate_problems.py # DTLZ/WFG problem generators
-│   │   └── correctness_check.py # Correctness verification
-│   └── analysis/
-│       └── performance_model.py # Analytical performance model
-├── experiments/
-│   ├── results/                 # CSV experiment results
-│   ├── plots/                   # Publication-quality figures
-│   └── generate_plots.py       # Plot generation script
-├── paper/
-│   ├── main.tex                 # Full LaTeX paper (IEEEtran)
-│   ├── sections/                # LaTeX sections
-│   ├── figures/                 # Paper figures
-│   └── references.bib          # BibTeX references
-├── requirements.txt
-├── setup.py
-└── README.md
+| Comparison | Peak Speedup | Configuration |
+|-----------|-------------|---------------|
+| GPU-NDS vs C++ DCNS | **27.8×** | N=10,000, M=8 |
+| GPU-NDS vs C++ NSGA-II sort | **22.3×** | N=5,000, M=10 |
+| GPU-NDS vs C++ BOS | **7.9×** | N=10,000, M=10 |
+| GPU-NSGA-II vs C++-NSGA-II (end-to-end) | **2.09×** | N=2,000, M=3 |
+| CUDA crowding vs CuPy crowding | **3×** | N=2,000, M=3 |
+
+## Correctness
+
+GPU-NDS produces **provably identical** front assignments to sequential non-dominated sorting (Proposition 2 in the paper). Correctness is validated across 480 configurations (all combinations of N, M, and benchmark problems).
+
+```bash
+python -m src.benchmarks.correctness_check
 ```
 
-## Authors
+## Citation
 
-- Ayaan
-- Prof. Sumit Mishra
+```bibtex
+@inproceedings{khan2025gpunds,
+  title     = {{GPU-NDS}: {GPU}-Accelerated Non-Dominated Sorting
+               with {DCNS}-Inspired Tiled Shared-Memory Dominance Checks},
+  author    = {Khan, Mohammed Azeez and Arif, Mohammed and
+               Nayak, Supreet and Mishra, Sumit},
+  booktitle = {Lecture Notes in Computer Science},
+  year      = {2025},
+  publisher = {Springer}
+}
+```
 
 ## License
 
-MIT
+This repository is provided for academic reproducibility purposes.
