@@ -57,9 +57,7 @@ def p_dominance(M):
     -------
     float
     """
-    # Exact: P(dom) = 1/M! but approximate comparability = 2 * 1/M!
-    from math import factorial
-    return 2.0 / factorial(M)
+    return 2.0 ** (1 - M)
 
 
 def theoretical_comparisons(N, M, F_estimate=None):
@@ -175,7 +173,7 @@ def validate_model(save_dir=None, smoke=False):
             emp.append(empirical_comparisons(N, M, problem_id=2, seed=42))
 
         ax.plot(N_vals, theo, 'o--', color=colors[0], label='Theoretical', linewidth=2)
-        ax.plot(N_vals, emp, 's-', color=colors[1], label='Empirical (DCNS)', linewidth=2)
+        ax.plot(N_vals, emp, 's-', color=colors[1], label='Empirical (GPU-NDS)', linewidth=2)
         ax.set_xlabel('N (population size)', fontsize=12)
         ax.set_ylabel('Dominance comparisons', fontsize=12)
         ax.set_title(f'M = {M}', fontsize=13)
