@@ -1,9 +1,5 @@
 # GPU-NDS: GPU-Accelerated Non-Dominated Sorting
 
-> **Reproducibility package** for:  
-> *GPU-NDS: GPU-Accelerated Non-Dominated Sorting with DCNS-Inspired Tiled Shared-Memory Dominance Checks*  
-> Khan, Arif, Nayak, Mishra — NIT Warangal
-
 GPU-NDS achieves up to **27.8× speedup** over optimized C++ baselines (compiled with `-O3`) for non-dominated sorting, and **2.09× end-to-end speedup** for a fully GPU-resident NSGA-II at N=2,000.
 
 ---
