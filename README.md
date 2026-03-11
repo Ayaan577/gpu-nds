@@ -116,19 +116,6 @@ GPU-NDS produces **provably identical** front assignments to sequential non-domi
 python -m src.benchmarks.correctness_check
 ```
 
-## Citation
-
-```bibtex
-@inproceedings{khan2025gpunds,
-  title     = {{GPU-NDS}: {GPU}-Accelerated Non-Dominated Sorting
-               with {DCNS}-Inspired Tiled Shared-Memory Dominance Checks},
-  author    = {Khan, Mohammed Azeez and Arif, Mohammed and
-               Nayak, Supreet and Mishra, Sumit},
-  booktitle = {Lecture Notes in Computer Science},
-  year      = {2025},
-  publisher = {Springer}
-}
-```
 
 ## License
 
